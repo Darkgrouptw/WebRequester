@@ -20,3 +20,9 @@ class Manager:
 
     def Post(self, Cookies=None):
         return self.Session.post(self.URL, cookies=Cookies, data=self.Dictionary, allow_redirects=False)
+
+    @staticmethod
+    def DebugFile(string):
+        File = open("Test.html", "wb")
+        File.write(string.encode("UTF-8"))
+        File.close()
