@@ -11,6 +11,9 @@ import re
 TimeOffsetMins = 5
 TimeIntervalMins = 30
 
+# Debug Mode
+IsDebugMode = True
+
 
 if len(sys.argv) <= 2:
     print("要給兩個參數，帳號 & 密碼")
@@ -75,7 +78,8 @@ def __ScreenShot(Response, Location):
 # 抓取打卡的資訊
 # 登入
 #region
-# VPN.Connect()
+if not IsDebugMode:
+    VPN.Connect()
 LoginM = FDM.Manager("http://tpehr.wkec.com/ehrportal/LoginFOrginal.asp")
 LoginM.AddParams("op", "act")
 LoginM.AddParams("lmethod", 3)
@@ -86,7 +90,6 @@ LoginM.AddParams("password", sys.argv[2])
 Response = LoginM.Post()
 Cookies = Response.cookies
 print(Cookies.get_dict())
-# FDM.Manager.DebugFile(Response.text)
 
 # 今天日期
 __PrintSplitLine()
@@ -153,5 +156,7 @@ for i in range(len(Schedule)):
 PunchOutProcess(Cookies)
 #endregion
 
-# 3.
+# 4.
 # 
+if not IsDebugMode:
+    VPN.Discount()
