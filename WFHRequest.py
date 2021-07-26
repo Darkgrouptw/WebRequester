@@ -14,7 +14,7 @@ TimeOffsetMins = 2
 TimeIntervalMins = 30
 
 # 運作的變數
-Cookies
+Cookies = cookies
 IsFinishToday = False
 
 # Debug Mode
@@ -47,13 +47,16 @@ def LoginProcess():
     Cookies = Response.cookies
 
 # 上班打卡
-def PunchInProcess(Cookies):
+def PunchInProcess():
     # 連線
     if not IsDebugMode:
         VPN.Connect()
 
+    # 重新要一次 Cookie
+    LoginProcess()
+
     CardDataM = FDM.Manager("http://tpehr.wkec.com/ehrportal/DEPT/Personal_CardData_Default.asp", Cookies)
-    CardDataM.AddParams("OP", "Update")
+    CardDataM.AddParams("OP", "Insert")
     CardDataM.AddParams("hidCARD_TYPE", "0")
     Response = CardDataM.Post(Cookies)
     PunchInTime = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
@@ -67,12 +70,15 @@ def PunchInProcess(Cookies):
         VPN.Discount()
 
 # 下班卡
-def PunchOutProcess(Cookies):
+def PunchOutProcess():
     # 連線
     if not IsDebugMode:
         VPN.Connect()
+    
+    # 重新要一次 Cookie
+    LoginProcess()
 
-    CardID = __GetCardID(Cookies, 1)
+    CardID = __GetCardID(1)
     CardDataM = FDM.Manager("http://tpehr.wkec.com/ehrportal/DEPT/Personal_CardData_Default.asp", Cookies)
     CardDataM.AddParams("hidCARD_TYPE", "1")
     if CardID != -1:
@@ -94,13 +100,13 @@ def PunchOutProcess(Cookies):
         VPN.Discount()
         
 # 最後一次的下班卡
-def PunchOutProcess_Final(Cookies):
+def PunchOutProcess_Final():
     global IsFinishToday
-    PunchOutProcess(Cookies)
+    PunchOutProcess()
     IsFinishToday = True
 
 # 拿卡片 ID
-def __GetCardID(Cookies, Type):
+def __GetCardID(Type):
     CardData_CheckM = FDM.Manager("http://tpehr.wkec.com/ehrportal/DEPT/Personal_CardData_Check.asp?strCARD_TYPE=1", Cookies=Cookies)
     ScriptLang = CardData_CheckM.Soup.find_all("script")
     if (len(ScriptLang) != 4):
@@ -163,10 +169,10 @@ __PrintSplitLine()
 ScheduleTimeList = []
 if not DoesWorkStart:
     PunchInProcess(Cookies)
+    __PrintSplitLine()
 
 print("本日上班打卡時間：")
 print(WorkStartTime)
-# WorkStartTime +=  timedelta(minutes=TimeOffsetMins)
 TempTime = WorkStartTime + timedelta(minutes=TimeOffsetMins)
 FinalWorkTime = TempTime + timedelta(hours=9.25)
 __PrintSplitLine()
@@ -193,16 +199,18 @@ print("接下來打卡時間")
 if len(ScheduleTimeList) > 0:
     # 1.
     for i in range(len(ScheduleTimeList)):
-        print("排成在 " + ScheduleTimeList[i] + " 會自動打下班卡")
-        if i != len(ScheduleTimeList) - d:
-            schedule.every().day.at(ScheduleTimeList[i]).do(PunchOutProcess(Cookies))
+        AtTime = ScheduleTimeList[i].strftime("%H:%M:%S")
+        print("# 在 " + AtTime + " 會自動打下班卡")
+
+        if i != len(ScheduleTimeList) - 1:
+            schedule.every().day.at(AtTime).do(PunchOutProcess)
         else:
-            schedule.every().day.at(ScheduleTimeList[i]).do(PunchOutProcess_Final(Cookies))
+            schedule.every().day.at(AtTime).do(PunchOutProcess_Final)
 elif not DoesWorkEnd or (DoesWorkEnd and WorkEndTime - WorkStartTime < timedelta(hours=9.25) + timedelta(minutes=TimeOffsetMins)):
     # 2. && 3.
     IsFinishToday = True
     print("現在打下班卡")
-    PunchOutProcess(Cookies)
+    PunchOutProcess()
 else:
     # 4.
     print("本日不用打卡了")
@@ -217,7 +225,7 @@ if not IsDebugMode:
 while not IsFinishToday:
     schedule.run_pending()
     time.sleep(1)
-PunchOutProcess(Cookies)
+# PunchOutProcess()
 
 #endregion
 
