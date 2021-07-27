@@ -20,6 +20,9 @@ IsFinishToday = False
 # Debug Mode
 IsDebugMode = False
 
+# 截圖參數
+ScreenShotLocation = "./ScreenShots/"
+
 
 if len(sys.argv) <= 2:
     print("要給兩個參數，帳號 & 密碼")
@@ -60,8 +63,8 @@ def PunchInProcess():
     CardDataM.AddParams("OP", "Insert")
     CardDataM.AddParams("hidCARD_TYPE", "0")
     Response = CardDataM.Post(Cookies)
-    PunchInTime = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    if Response.status_code == 200 and __ScreenShot(Response, PunchInTime + " _0"):
+    PunchInTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+    if Response.status_code == 200 and __ScreenShot(Response, PunchInTime + "_0"):
         print(PunchInTime + " 上班打卡成功 !!")
     else:
         print("上班打卡失敗 !!")
@@ -92,8 +95,8 @@ def PunchOutProcess():
         CardDataM.AddParams("OP", "Insert")
     Response = CardDataM.Post(Cookies)
 
-    PunchOutTime = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    if Response.status_code == 200 and __ScreenShot(Response, PunchOutTime + " _1"):
+    PunchOutTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+    if Response.status_code == 200 and __ScreenShot(Response, PunchOutTime + "_1"):
         print(PunchOutTime + " 下班打卡成功 !!")
     else:
         print("下班打卡失敗 !!")
@@ -121,8 +124,18 @@ def __GetCardID(Type):
 
 # 截圖
 def __ScreenShot(Response, Location):
-    # print(SSM.Manager.Transfor(Response))
-    return True
+    ScreenShotHTML = SSM.Manager.Transfor(Response)
+    if ScreenShotHTML is not None:
+        # 創建資料夾
+        if not os.path.isdir(ScreenShotLocation):
+            os.mkdir(ScreenShotLocation)
+
+        File = open(ScreenShotLocation + Location + ".html", "w", encoding="UTF-8")
+        File.write(ScreenShotHTML)
+        File.close()
+        return True
+    else:
+        return False
 #endregion
 
 # 抓取打卡的資訊
@@ -176,7 +189,7 @@ if not IsDebugMode:
 #region
 ScheduleTimeList = []
 if not DoesWorkStart:
-    PunchInProcess(Cookies)
+    PunchInProcess()
     __PrintSplitLine()
 
 print("本日上班打卡時間：")
@@ -228,10 +241,10 @@ __PrintSplitLine()
 
 # 4.
 #region
-while not IsFinishToday:
-    schedule.run_pending()
-    time.sleep(1)
-# PunchOutProcess()
+# while not IsFinishToday:
+#     schedule.run_pending()
+#     time.sleep(1)
+PunchOutProcess()
 
 #endregion
 
