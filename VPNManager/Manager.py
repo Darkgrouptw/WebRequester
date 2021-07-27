@@ -4,8 +4,16 @@ import os
 class VPNManager:
     @staticmethod
     def Connect():
-        os.popen("rasphone -d WinkingTest -f ./VPN.pbk")
+        buffer = os.popen("rasdial WinkingTest wk999 Wkec!999@2021 /PHONEBOOK:VPN.pbk", "r")
+        contents = buffer.readlines()
+        print("VPN Manager (Connected): ")
+        for i in range(len(contents)):
+            print(contents[i][:-1])
     
     @staticmethod
     def Discount():
-        os.popen("rasphone -H WinkingTest")
+        buffer = os.popen("rasdial WinkingTest /DISCONNECT", "r")
+        contents = buffer.readlines()
+        print("VPN Manager (Disconnected): ")
+        for i in range(len(contents)):
+            print(contents[i][:-1])

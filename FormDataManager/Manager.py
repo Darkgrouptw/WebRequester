@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 class Manager:
     def __init__(self, URL, Cookies=None):
         self.URL = URL
-        r = requests.get(URL, cookies=Cookies)
+        r = requests.get(URL, cookies=Cookies, timeout=3)
         self.Soup = BeautifulSoup(r.text, "html.parser")
         self.Dictionary = {}
         self.Session = requests.Session();

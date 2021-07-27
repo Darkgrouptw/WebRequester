@@ -18,7 +18,7 @@ Cookies = cookies
 IsFinishToday = False
 
 # Debug Mode
-IsDebugMode = True
+IsDebugMode = False
 
 
 if len(sys.argv) <= 2:
@@ -51,6 +51,7 @@ def PunchInProcess():
     # 連線
     if not IsDebugMode:
         VPN.Connect()
+        __PrintSplitLine()
 
     # 重新要一次 Cookie
     LoginProcess()
@@ -68,12 +69,14 @@ def PunchInProcess():
     # 斷開
     if not IsDebugMode:
         VPN.Discount()
+        __PrintSplitLine()
 
 # 下班卡
 def PunchOutProcess():
     # 連線
     if not IsDebugMode:
         VPN.Connect()
+        __PrintSplitLine()
     
     # 重新要一次 Cookie
     LoginProcess()
@@ -98,6 +101,7 @@ def PunchOutProcess():
     # 斷開
     if not IsDebugMode:
         VPN.Discount()
+        __PrintSplitLine()
         
 # 最後一次的下班卡
 def PunchOutProcess_Final():
@@ -126,6 +130,7 @@ def __ScreenShot(Response, Location):
 #region
 if not IsDebugMode:
     VPN.Connect()
+    __PrintSplitLine()
 LoginProcess()
 print(Cookies.get_dict())
 
@@ -162,6 +167,9 @@ for i in range(0, len(TableData), 2):
         DoesWorkEnd = True
         WorkEndTime =  datetime.strptime(TableData[i].text, "%Y-%m-%d %H:%M:%S")
 __PrintSplitLine()
+if not IsDebugMode:
+    VPN.Discount()
+    __PrintSplitLine()
 #endregion
 
 # 2.
@@ -220,8 +228,6 @@ __PrintSplitLine()
 
 # 4.
 #region
-if not IsDebugMode:
-    VPN.Discount()
 while not IsFinishToday:
     schedule.run_pending()
     time.sleep(1)
