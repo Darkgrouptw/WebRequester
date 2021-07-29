@@ -12,16 +12,19 @@ import time
 # 時間間隔多久，打卡一次
 TimeOffsetMins = 2
 TimeIntervalMins = 30
+TimeFormat = "%Y-%m-%d %H:%M:%S"
 
 # 運作的變數
 Cookies = cookies
 IsFinishToday = False
 
-# Debug Mode
-IsDebugMode = False
+# 系統相關設定
+UsingVPN = False
+Version = "0.1-beta1"
 
 # 截圖參數
 ScreenShotLocation = "./ScreenShots/"
+ScreenShotFormat = "%Y%m%d_%H%M%S"
 
 
 if len(sys.argv) <= 2:
@@ -52,7 +55,7 @@ def LoginProcess():
 # 上班打卡
 def PunchInProcess():
     # 連線
-    if not IsDebugMode:
+    if not UsingVPN:
         VPN.Connect()
         __PrintSplitLine()
 
@@ -63,21 +66,21 @@ def PunchInProcess():
     CardDataM.AddParams("OP", "Insert")
     CardDataM.AddParams("hidCARD_TYPE", "0")
     Response = CardDataM.Post(Cookies)
-    PunchInTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-    if Response.status_code == 200 and __ScreenShot(Response, PunchInTime + "_0"):
-        print(PunchInTime + " 上班打卡成功 !!")
+    PunchInTime = datetime.now()
+    if Response.status_code == 200 and __ScreenShot(Response, PunchInTime, 0):
+        print(PunchInTime.strftime(TimeFormat) + " 上班打卡成功 !!")
     else:
         print("上班打卡失敗 !!")
     
     # 斷開
-    if not IsDebugMode:
+    if not UsingVPN:
         VPN.Discount()
         __PrintSplitLine()
 
 # 下班卡
 def PunchOutProcess():
     # 連線
-    if not IsDebugMode:
+    if not UsingVPN:
         VPN.Connect()
         __PrintSplitLine()
     
@@ -95,14 +98,14 @@ def PunchOutProcess():
         CardDataM.AddParams("OP", "Insert")
     Response = CardDataM.Post(Cookies)
 
-    PunchOutTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-    if Response.status_code == 200 and __ScreenShot(Response, PunchOutTime + "_1"):
-        print(PunchOutTime + " 下班打卡成功 !!")
+    PunchOutTime = datetime.now()
+    if Response.status_code == 200 and __ScreenShot(Response, PunchOutTime, 1):
+        print(PunchOutTime.strftime(TimeFormat) + " 下班打卡成功 !!")
     else:
         print("下班打卡失敗 !!")
 
     # 斷開
-    if not IsDebugMode:
+    if not UsingVPN:
         VPN.Discount()
         __PrintSplitLine()
         
@@ -123,14 +126,14 @@ def __GetCardID(Type):
     return int(p.findall(str(ScriptLang[2]))[0])
 
 # 截圖
-def __ScreenShot(Response, Location):
+def __ScreenShot(Response, CurrentDate, Type):
     ScreenShotHTML = SSM.Manager.Transfor(Response)
     if ScreenShotHTML is not None:
         # 創建資料夾
         if not os.path.isdir(ScreenShotLocation):
             os.mkdir(ScreenShotLocation)
 
-        File = open(ScreenShotLocation + Location + ".html", "w", encoding="UTF-8")
+        File = open(ScreenShotLocation + CurrentDate.strftime(ScreenShotFormat) + "_" + str(Type) + ".html", "w", encoding="UTF-8")
         File.write(ScreenShotHTML)
         File.close()
         return True
@@ -138,10 +141,18 @@ def __ScreenShot(Response, Location):
         return False
 #endregion
 
+
+# 版本資訊
+__PrintSplitLine()
+__PrintSplitLine()
+print("Duke 打卡工具小幫手 V" + Version + "")
+__PrintSplitLine()
+__PrintSplitLine()
+
 # 抓取打卡的資訊
 # 登入
 #region
-if not IsDebugMode:
+if not UsingVPN:
     VPN.Connect()
     __PrintSplitLine()
 LoginProcess()
@@ -155,17 +166,18 @@ print("日期:", TodayString)
 #endregion
 
 # 接者進打卡頁面
-# 1. 拿取目前的打卡列表
+# 0. 拿取目前的打卡列表
+# 1. 先判斷是否是 假日 or 過中午十二點以後
 # 2. 如果沒有打上班卡，立即幫忙打上班卡
 # 3. 如果打了上班卡，接下來每隔 30 分鐘會幫忙打卡一次 (延遲五分鐘 的每隔30分)，並且截圖
 # 4. 一直循環直到打完卡 Progress
-# 5.
+# 5. pause
 DoesWorkStart = False
 WorkStartTime = datetime.now()
 DoesWorkEnd = False
 WorkEndTime = datetime.now()
 
-# 1.
+# 0.
 #region
 PersonalM = FDM.Manager("http://tpehr.wkec.com/ehrportal/DEPT/Personal_CardData_DataList.asp", Cookies)
 TableData = PersonalM.Soup.find_all("nobr")
@@ -175,14 +187,37 @@ for i in range(0, len(TableData), 2):
     print(TableData[i].text + " " + TableData[i + 1].text)
     if TableData[i].text.find(TodayString) != -1 and TableData[i + 1].text == "上班":
         DoesWorkStart = True
-        WorkStartTime = datetime.strptime(TableData[i].text, "%Y-%m-%d %H:%M:%S")
+        WorkStartTime = datetime.strptime(TableData[i].text, TimeFormat)
     elif TableData[i].text.find(TodayString) != -1 and TableData[i + 1].text == "下班":
         DoesWorkEnd = True
-        WorkEndTime =  datetime.strptime(TableData[i].text, "%Y-%m-%d %H:%M:%S")
+        WorkEndTime =  datetime.strptime(TableData[i].text, TimeFormat)
 __PrintSplitLine()
-if not IsDebugMode:
+if not UsingVPN:
     VPN.Discount()
     __PrintSplitLine()
+#endregion
+
+# 1. 
+#region
+# a. 是否 為假日
+# b. 是否 中午十二點之後 
+NeedCheckBoolean = False
+
+# a.
+if Today.weekday() >= 5:
+    NeedCheckBoolean = True
+    print ("今天為假日")
+# b.
+if Today.hour >= 12 and not DoesWorkStart:
+    NeedCheckBoolean = True
+    print ("目前時間為中午過後")
+
+if NeedCheckBoolean:
+    choose = input("請確定是否要執行打卡程式 (是請打'Y'):")
+    if choose.lower() != "y":
+        print("Bye Bye 祝你有美好的一天 ~~")
+        os.system("PAUSE")
+        exit()
 #endregion
 
 # 2.
@@ -241,12 +276,11 @@ __PrintSplitLine()
 
 # 4.
 #region
-# while not IsFinishToday:
-#     schedule.run_pending()
-#     time.sleep(1)
-PunchOutProcess()
-
+while not IsFinishToday:
+    schedule.run_pending()
+    time.sleep(1)
 #endregion
 
 # 5.
-# 
+print("下班囉!!")
+os.system("PAUSE")
