@@ -19,7 +19,7 @@ Cookies = cookies
 IsFinishToday = False
 
 # 系統相關設定
-UsingVPN = False
+UsingVPN = True
 Version = "0.1-beta1"
 
 # 截圖參數
@@ -30,7 +30,7 @@ ScreenShotFormat = "%Y%m%d_%H%M%S"
 if len(sys.argv) <= 2:
     print("要給兩個參數，帳號 & 密碼")
     os.system("PAUSE")
-    exit()
+    sys.exit()
 
 #region Helper Function
 def __PrintSplitLine():
@@ -55,7 +55,7 @@ def LoginProcess():
 # 上班打卡
 def PunchInProcess():
     # 連線
-    if not UsingVPN:
+    if UsingVPN:
         VPN.Connect()
         __PrintSplitLine()
 
@@ -73,14 +73,14 @@ def PunchInProcess():
         print("上班打卡失敗 !!")
     
     # 斷開
-    if not UsingVPN:
+    if UsingVPN:
         VPN.Discount()
         __PrintSplitLine()
 
 # 下班卡
 def PunchOutProcess():
     # 連線
-    if not UsingVPN:
+    if UsingVPN:
         VPN.Connect()
         __PrintSplitLine()
     
@@ -105,7 +105,7 @@ def PunchOutProcess():
         print("下班打卡失敗 !!")
 
     # 斷開
-    if not UsingVPN:
+    if UsingVPN:
         VPN.Discount()
         __PrintSplitLine()
         
@@ -152,7 +152,7 @@ __PrintSplitLine()
 # 抓取打卡的資訊
 # 登入
 #region
-if not UsingVPN:
+if UsingVPN:
     VPN.Connect()
     __PrintSplitLine()
 LoginProcess()
@@ -192,7 +192,7 @@ for i in range(0, len(TableData), 2):
         DoesWorkEnd = True
         WorkEndTime =  datetime.strptime(TableData[i].text, TimeFormat)
 __PrintSplitLine()
-if not UsingVPN:
+if UsingVPN:
     VPN.Discount()
     __PrintSplitLine()
 #endregion
@@ -217,7 +217,7 @@ if NeedCheckBoolean:
     if choose.lower() != "y":
         print("Bye Bye 祝你有美好的一天 ~~")
         os.system("PAUSE")
-        exit()
+        sys.exit()
 #endregion
 
 # 2.
