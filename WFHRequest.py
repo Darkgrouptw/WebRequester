@@ -20,7 +20,7 @@ IsFinishToday = False
 
 # 系統相關設定
 UsingVPN = True
-Version = "0.1-beta1"
+Version = "0.1-beta2"
 
 # 截圖參數
 ScreenShotLocation = "./ScreenShots/"
@@ -183,7 +183,8 @@ PersonalM = FDM.Manager("http://tpehr.wkec.com/ehrportal/DEPT/Personal_CardData_
 TableData = PersonalM.Soup.find_all("nobr")
 __PrintSplitLine()
 print("上班時間列表：")
-for i in range(0, len(TableData), 2):
+print("刷卡時間 上下班別")
+for i in range(3, len(TableData), 2):
     print(TableData[i].text + " " + TableData[i + 1].text)
     if TableData[i].text.find(TodayString) != -1 and TableData[i + 1].text == "上班":
         DoesWorkStart = True
